@@ -143,37 +143,77 @@ resource "aws_security_group" "ec2_security_group" {
     cidr_blocks = ["${var.allowed_cidrs}"]
   }
 
-  egress_rules = ["all-all"]
-  tags         = module.label.tags
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = [var.allowed_cidrs]
+  }
+  tags = module.label.tags
 }
 
-resource "aws_key_pair" "local" {
-  key_name   = "local"
-  public_key = var.local_ssh_pub_key
+# EC2 ssh key pair
+resource "tls_private_key" "ec2_ssh" {
+  count = length(var.key_name) > 0 ? 0 : 1
+
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "ec2_ssh" {
+  count = length(var.key_name) > 0 ? 0 : 1
+
+  key_name   = "${var.name}-ec2-ssh-key"
+  public_key = tls_private_key.ec2_ssh[0].public_key_openssh
+}
+
+locals {
+  _ssh_key_name = length(var.key_name) > 0 ? var.key_name : aws_key_pair.ec2_ssh[0].key_name
 }
 
 # AWS Instance
-resource "aws_instance" "minecraft_server" {
-  ami               = "ami-839c94e3"
-  instance_type     = var.instance_type
+resource "aws_instance" "ec2_minecraft" {
+
+  key_name             = local._ssh_key_name
+  ami                  = var.ami != "" ? var.ami : data.aws_ami.ubuntu.image_id
+  instance_type        = var.ec2_instance_type
+  iam_instance_profile = aws_iam_instance_profile.mc.id
+
+  subnet_id                   = local.subnet_id
+  vpc_security_group_ids      = [aws_security_group.ec2_security_group.id]
+  associate_public_ip_address = var.associate_public_ip_address
+
   availability_zone = var.region
-  security_groups = [
-    "${aws_security_group.minecraft.name}"
-  ]
+
   tags = module.label.tags
 }
 
 # EBS Volume
-resource "aws_ebs_volume" "data-vol" {
-  availability_zone = "us-east-1"
-  size              = 1
-  tags = {
-    Name = "data-volume"
-  }
+resource "aws_ebs_volume" "mc_vol" {
+  availability_zone = var.region
+  size              = 8
+  tags              = module.label.tags
 }
 
-resource "aws_volume_attachment" "minecraft-vol" {
-  device_name = "/dev/sdc"
-  volume_id   = aws_ebs_volume.data-vol.id
-  instance_id = aws_instance.minecraft_server.id
+resource "aws_volume_attachment" "mc_vol" {
+  device_name = "/dev/xvda"
+  volume_id   = aws_ebs_volume.mc_vol.id
+  instance_id = aws_instance.ec2_minecraft.id
+}
+
+# CloudWatch Alarm
+resource "aws_cloudwatch_metric_alarm" "active_connections" {
+  alarm_name        = "${var.name}-network-alarm"
+  alarm_description = "Detects when there hasn't been any inbound network traffic"
+
+  comparison_operator = "LessThanThreshold"
+  period              = 300
+  threshold           = 2500
+  unit                = "Bytes"
+  evaluation_periods  = 3
+  namespace           = "AWS/EC2"
+  metric_name         = "NetworkIn"
+  alarm_actions       = ["arn:aws:automate:${var.region}:ec2:stop"]
+  dimensions          = { InstanceId = aws_instance.ec2_minecraft.id }
 }
