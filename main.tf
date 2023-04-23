@@ -13,6 +13,11 @@ data "aws_subnet_ids" "default" {
 
 data "aws_caller_identity" "aws" {}
 
+data "external" "current_ip" {
+  program = ["bash", "-c", "curl -s 'https://api.ipify.org?format=json'"]
+}
+
+
 locals {
   vpc_id    = length(var.vpc_id) > 0 ? var.vpc_id : data.aws_vpc.default.id
   subnet_id = length(var.subnet_id) > 0 ? var.subnet_id : sort(data.aws_subnet_ids.default.ids)[0]
@@ -20,6 +25,10 @@ locals {
     terraform = true,
     by        = data.aws_caller_identity.aws.arn
   }
+}
+
+data "aws_subnet" "selected" {
+  id = local.subnet_id
 }
 
 # Keep labels, tags, etc consistent
@@ -35,19 +44,19 @@ module "label" {
 }
 
 # Find latest ubuntu AMI to use as default if none specified
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-*-${var.ubuntu_version}-amd64-sever-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
+#data "aws_ami" "ubuntu" {
+#  most_recent = true
+#
+#  filter {
+#    name   = "name"
+#    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-${var.ubuntu_version}-amd64-sever-*"]
+#  }
+#
+#  filter {
+#    name   = "virtualization-type"
+#    values = ["hvm"]
+#  }
+#}
 
 # S3 bucket for data persistence
 resource "random_string" "s3" {
@@ -132,13 +141,13 @@ resource "aws_security_group" "ec2_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${var.local_ip}/32", "${var.allowed_cidrs}"]
+    cidr_blocks = ["${data.external.current_ip.result.ip}/32", "${var.allowed_cidrs}"]
   }
 
   ingress {
     description = "Minecraft IP range"
-    from_port   = 25565
-    to_port     = 25565
+    from_port   = var.mc_port
+    to_port     = var.mc_port
     protocol    = "tcp"
     cidr_blocks = ["${var.allowed_cidrs}"]
   }
@@ -176,7 +185,7 @@ locals {
 resource "aws_instance" "ec2_minecraft" {
 
   key_name             = local._ssh_key_name
-  ami                  = var.ami != "" ? var.ami : data.aws_ami.ubuntu.image_id
+  ami                  = var.ami # != "" ? var.ami : data.aws_ami.ubuntu.image_id
   instance_type        = var.ec2_instance_type
   iam_instance_profile = aws_iam_instance_profile.mc.id
 
@@ -184,14 +193,14 @@ resource "aws_instance" "ec2_minecraft" {
   vpc_security_group_ids      = [aws_security_group.ec2_security_group.id]
   associate_public_ip_address = var.associate_public_ip_address
 
-  availability_zone = var.region
+  #availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = module.label.tags
 }
 
 # EBS Volume
 resource "aws_ebs_volume" "mc_vol" {
-  availability_zone = var.region
+  availability_zone = data.aws_subnet.selected.availability_zone
   size              = 8
   tags              = module.label.tags
 }
@@ -207,6 +216,7 @@ resource "aws_cloudwatch_metric_alarm" "active_connections" {
   alarm_name        = "${var.name}-network-alarm"
   alarm_description = "Detects when there hasn't been any inbound network traffic"
 
+  statistic           = "Average"
   comparison_operator = "LessThanThreshold"
   period              = 300
   threshold           = 2500

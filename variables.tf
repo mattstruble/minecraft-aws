@@ -75,7 +75,7 @@ variable "ubuntu_version" {
 variable "ami" {
   description = "AMI to use for the instance - defaults to latest ubuntu"
   type        = string
-  default     = ""
+  default     = "ami-0aa2b7722dc1b5612"
 }
 
 variable "ec2_instance_type" {
@@ -96,13 +96,8 @@ variable "region" {
   default     = "us-east-1"
 }
 
-# Local
-variable "local_ip" {
-  description = "Local IP to enable for ssh access"
-  type        = string
-}
-
-variable "local_ssh_pub_key" {
-  description = "Local ssh public key"
-  type        = string
+variable "mc_port" {
+  description = "Minecraft TCP port"
+  type        = number
+  default     = 25565
 }
