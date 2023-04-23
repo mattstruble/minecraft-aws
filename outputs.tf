@@ -15,11 +15,13 @@ output "id" {
 }
 
 output "public_key_openssh" {
-  value = tls_private_key.ec2_ssh.*.public_key_openssh
+  value     = tls_private_key.ec2_ssh.*.public_key_openssh
+  sensitive = true
 }
 
 output "public_key" {
-  value = tls_private_key.ec2_ssh.*.public_key_pem
+  value     = tls_private_key.ec2_ssh.*.public_key_pem
+  sensitive = true
 }
 
 output "private_key" {

@@ -206,7 +206,7 @@ resource "aws_ebs_volume" "mc_vol" {
 }
 
 resource "aws_volume_attachment" "mc_vol" {
-  device_name = "/dev/xvda"
+  device_name = "/dev/sdf"
   volume_id   = aws_ebs_volume.mc_vol.id
   instance_id = aws_instance.ec2_minecraft.id
 }
