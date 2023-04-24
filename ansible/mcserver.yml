@@ -10,7 +10,8 @@
   tasks:
     - debug:
         var: instance_type
-  # roles:
-  #   - fail2ban
-  #   - java
-  #   - minecraft
+
+  roles:
+    - fail2ban
+    - java
+    - minecraft
