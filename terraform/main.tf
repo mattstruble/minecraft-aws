@@ -202,6 +202,7 @@ resource "aws_instance" "ec2_minecraft" {
 resource "aws_ebs_volume" "mc_vol" {
   availability_zone = data.aws_subnet.selected.availability_zone
   size              = 8
+  type              = "gp3"
   tags              = module.label.tags
 }
 
