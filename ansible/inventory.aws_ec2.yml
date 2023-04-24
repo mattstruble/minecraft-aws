@@ -13,3 +13,4 @@ filters:
 
 compose:
   ansible_host: public_ip_address
+  instance_type: instance_type
