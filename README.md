@@ -9,3 +9,4 @@ minecraft using ansible.
 - <https://github.com/HarryNash/terraform-minecraft>
 - <https://franok.de/techblog/2022/on-demand-minecraft-server-on-aws.html>
 - <https://franok.de/techblog/2022/automated-deployment-of-minecraft-server-on-aws-with-ansible.html>
+- <https://github.com/devops-coop/ansible-minecraft>

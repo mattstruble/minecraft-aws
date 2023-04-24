@@ -3,6 +3,10 @@ plugin: amazon.aws.aws_ec2
 
 keyed_groups:
   - key: tags.Name
+    separator: ""
+
+  - key: instance_type
+    separator: ""
 
 filters:
   instance-state-name: running
