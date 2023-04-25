@@ -1,7 +1,0 @@
----
-minecraft_server: minecraft
-minecraft_version: latest
-minecraft_user: "{{ minecraft_server }}"
-minecraft_group: "{{ minecraft_server }}"
-minecraft_home: "/{{ minecraft_server }}"
-minecraft_port: 25565

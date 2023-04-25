@@ -36,3 +36,5 @@ terraform.rc
 **/*.pem
 
 *.retry
+
+*.DS_Store

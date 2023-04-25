@@ -42,7 +42,7 @@
 
 - name: extract latest PaperMC version
   set_fact:
-    minecraft_version: "{{ response['json']['versions'][-1]}}"
+    minecraft_version: "{{ response['json']['versions'][-1] }}"
   when: minecraft_version == "latest"
 
 - name: query PaperMC builds
