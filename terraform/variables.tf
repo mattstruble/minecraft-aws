@@ -81,7 +81,7 @@ variable "ami" {
 variable "ec2_instance_type" {
   description = "EC2 size to run the servers on"
   type        = string
-  default     = "t2.micro"
+  default     = "t2.large"
 }
 
 variable "allowed_cidrs" {
