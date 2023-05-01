@@ -1,3 +1,8 @@
+- name: include AWS specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "ec2/{{ instance_type | replace('.', '_') }}.yml"
+
 - name: create Minecraft group
   group:
     state: present
@@ -57,18 +62,30 @@
 - name: extract PaperMC build info
   set_fact:
     mc_build_number: "{{ response['json']['builds'][-1]['build']}}"
-    mc_jar_name: "{{ response['json']['builds'][-1]['downloads']['application']['name']}}"
+    minecraft_jar: "{{ response['json']['builds'][-1]['downloads']['application']['name']}}"
     mc_jar_sha: "{{ response['json']['builds'][-1]['downloads']['application']['sha256']}}"
 
 - name: define PaperMC download path
   set_fact:
-    mc_download_path: "https://api.papermc.io/v2/projects/paper/versions/{{minecraft_version}}/builds/{{ mc_build_number }}/downloads/{{ mc_jar_name }}"
+    mc_download_path: "https://api.papermc.io/v2/projects/paper/versions/{{minecraft_version}}/builds/{{ mc_build_number }}/downloads/{{ minecraft_jar }}"
 
 - name: download PaperMC
   get_url:
     url: "{{ mc_download_path }}"
     dest: "{{ minecraft_home }}"
     checksum: "sha256:{{ mc_jar_sha }}"
+  notify:
+    - restart Minecraft
 
-- debug:
-    var: mc_download_path
+- include: systemd.yml
+  when: minecraft_process_control == 'systemd'
+
+- name: agree to EULA
+  copy:
+    src: eula.txt
+    dest: "{{ minecraft_home }}/eula.txt"
+    mode: 0644
+    owner: "{{ minecraft_user }}"
+    group: "{{ minecraft_group }}"
+  notify:
+    - enable service

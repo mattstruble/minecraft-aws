@@ -10,10 +10,12 @@ minecraft_max_memory: 1024M
 minecraft_initial_memory: 1024M
 minecraft_service_name: "{{ minecraft_server }}"
 minecraft_supervisor_name: "{{ minecraft_service_name }}"
+
 minecraft_whitelist: []
 minecraft_ops: []
 minecraft_banned_players: []
 minecraft_banned_ips: []
+
 minecraft_console_fifo: /run/{{ minecraft_service_name }}/console
 minecraft_console_fifo_mode: "0666"
 minecraft_process_control: systemd
